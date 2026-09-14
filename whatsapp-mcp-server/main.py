@@ -4,7 +4,7 @@ Consumes the Go bridge REST API (default http://127.0.0.1:8080) and exposes
 MCP tools to Claude. FastMCP + stdio transport.
 
 Read-only tools: healthcheck, list_chats, search_contacts, search_groups,
-list_messages, download_media, request_history.
+list_group_members, list_messages, download_media, request_history.
 
 Write/presence tools stripped: send_message, send_file, send_audio_message,
 send_reply_quote, send_reaction, confirm_send, mark_chat_read,
@@ -466,6 +466,56 @@ async def search_groups(query: str, limit: int = 10) -> dict[str, Any]:
         return {"groups": trimmed, "count": len(trimmed), "total_joined": len(groups)}
     except Exception as e:  # noqa: BLE001
         _audit("search_groups", params, "failed", int((time.time() - start) * 1000), error=str(e))
+        raise
+
+
+@mcp.tool()
+async def list_group_members(group_jid: str) -> dict[str, Any]:
+    """List members of a specific WhatsApp group with phone numbers.
+
+    Args:
+        group_jid: The group JID (e.g. "120363424919467422@g.us").
+    """
+    start = time.time()
+    params: dict[str, Any] = {"group_jid": group_jid}
+    try:
+        result = await _bridge_get("/api/groups")
+        groups = result.get("groups", [])
+        group = next((g for g in groups if g.get("jid") == group_jid), None)
+        if group is None:
+            _audit("list_group_members", params, "not_found", int((time.time() - start) * 1000))
+            return {"error": f"Group {group_jid} not found or not joined"}
+
+        members = []
+        for p in group.get("participants", []):
+            phone = p.get("phone", "")
+            full_name = ""
+            push_name = ""
+            if phone:
+                try:
+                    cr = await _bridge_get("/api/contacts/search", {"q": phone, "limit": 5})
+                    for c in cr.get("contacts", []):
+                        if c.get("phone") == phone:
+                            full_name = c.get("full_name", "")
+                            push_name = c.get("push_name", "")
+                            break
+                except Exception:  # noqa: BLE001
+                    pass
+            member = {
+                "jid": p.get("jid", ""),
+                "phone": phone,
+                "display_name": p.get("display_name", ""),
+                "full_name": full_name,
+                "push_name": push_name,
+                "is_admin": p.get("is_admin", False),
+            }
+            members.append(member)
+
+        scrubbed_name, _ = scrub(group.get("name"))
+        _audit("list_group_members", params, f"{len(members)} members", int((time.time() - start) * 1000))
+        return {"group_jid": group_jid, "name": scrubbed_name, "members": members, "count": len(members)}
+    except Exception as e:  # noqa: BLE001
+        _audit("list_group_members", params, "failed", int((time.time() - start) * 1000), error=str(e))
         raise
 
 
