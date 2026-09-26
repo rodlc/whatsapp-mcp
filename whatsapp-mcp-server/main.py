@@ -363,7 +363,7 @@ async def _bridge_post(path: str, body: dict[str, Any]) -> Any:
     return r.json()
 
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 async def healthcheck() -> dict[str, Any]:
     """Check the Go bridge is running and authenticated.
     Returns status, schema version, and feature flags.
@@ -386,7 +386,7 @@ async def healthcheck() -> dict[str, Any]:
         raise
 
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 async def list_chats(limit: int = 20, offset: int = 0, unread_only: bool = False) -> dict[str, Any]:
     """List WhatsApp chats with metadata. Sorted by most recent message time.
 
@@ -406,7 +406,7 @@ async def list_chats(limit: int = 20, offset: int = 0, unread_only: bool = False
         raise
 
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 async def search_contacts(query: str, limit: int = 10) -> dict[str, Any]:
     """Find contacts by name or phone number. Accent-insensitive.
     "Muñoz" matches "munoz", "José" matches "jose", "Zürich" matches "zurich".
@@ -431,7 +431,7 @@ def _fold(s: str) -> str:
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 async def search_groups(query: str, limit: int = 10) -> dict[str, Any]:
     """Find WhatsApp groups by name. Accent-insensitive, case-insensitive
     substring match. Unlike list_chats, this sees every JOINED group, not
@@ -469,7 +469,7 @@ async def search_groups(query: str, limit: int = 10) -> dict[str, Any]:
         raise
 
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 async def list_group_members(group_jid: str) -> dict[str, Any]:
     """List members of a specific WhatsApp group with phone numbers.
 
@@ -519,7 +519,7 @@ async def list_group_members(group_jid: str) -> dict[str, Any]:
         raise
 
 
-@mcp.tool()
+@mcp.tool(annotations={"readOnlyHint": True})
 async def list_messages(
     chat_jid: str,
     limit: int = 20,
